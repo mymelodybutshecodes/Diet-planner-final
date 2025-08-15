@@ -3,42 +3,50 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Wellness Planner — Sign in</title>
-<style>
-  :root{--bg1:#fff5f8;--card:#fff;--ink:#3b2a34;--muted:#7a6871;--accent:#cc6e91;--edge:#f2d3e0}
-  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(120deg,#fff5f8,#fff0f6);min-height:100vh;display:grid;place-items:center;color:var(--ink)}
-  .card{width:min(520px,92vw);background:var(--card);border:1px solid var(--edge);border-radius:18px;padding:22px;box-shadow:0 12px 34px rgba(204,110,145,.08)}
-  h1{margin:0 0 6px;font-size:22px;color:var(--accent)} .sub{color:var(--muted);font-size:14px}
-  .row{display:flex;gap:10px;margin-top:14px} .row input{flex:1}
-  input{padding:12px;border-radius:12px;border:1px solid #ead3de;outline:none;font-size:15px;width:100%}
-  input:focus{border-color:#e3a9c1;box-shadow:0 0 0 6px rgba(204,110,145,.08)}
-  .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-  button{padding:10px 14px;border-radius:12px;border:1px solid transparent;background:linear-gradient(90deg,#ff9bc6,#cc6e91);color:#fff;font-weight:600;cursor:pointer}
-  .ghost{background:#fff;color:var(--accent);border-color:#ead3de}
-  .foot{margin-top:10px;color:var(--muted);font-size:13px;text-align:center}
-  .top{display:flex;align-items:center;gap:10px}
-  .logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(180deg,#ff9bc6,#cc6e91);display:grid;place-items:center;color:#fff;font-weight:700}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <main class="card" role="main" aria-labelledby="title">
-    <div class="top"><div class="logo">★</div><div><h1 id="title">Wellness Planner</h1><div class="sub">Private, offline, effective.</div></div></div>
-    <div class="row"><input id="name" placeholder="Your name" autocomplete="name"></div>
-    <div class="row"><input id="email" placeholder="Email (optional)" type="email" autocomplete="email"></div>
-    <div class="actions">
-      <button id="go">Continue</button>
-      <button class="ghost" id="guest">Continue as guest</button>
+<body class="bg">
+  <main class="card card--center">
+    <div class="brand">
+      <div class="brand__logo">★</div>
+      <div>
+        <h1 class="brand__title">Wellness Planner</h1>
+        <p class="muted">Private, offline, effective.</p>
+      </div>
     </div>
-    <div class="foot">Data is stored only in your browser.</div>
+
+    <div class="grid grid--1">
+      <label class="field">
+        <span>Name</span>
+        <input id="name" placeholder="Your name" autocomplete="name">
+      </label>
+      <label class="field">
+        <span>Email (optional)</span>
+        <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="go">Continue</button>
+      <button class="btn btn--ghost" id="guest">Continue as guest</button>
+    </div>
+
+    <p class="foot muted">Your data is stored only in this browser.</p>
   </main>
+
+<script src="script.js"></script>
 <script>
-const $=id=>document.getElementById(id);
-$('go').onclick=()=>{
-  const name=$('name').value.trim(); const email=$('email').value.trim();
+document.getElementById('go').onclick = () => {
+  const name = byId('name').value.trim();
+  const email = byId('email').value.trim();
   if(!name){ alert('Please enter your name.'); return; }
-  localStorage.setItem('wp_user', JSON.stringify({name,email}));
-  location.href='quiz.html';
+  saveUser({name,email});
+  location.href = 'dashboard.html';
 };
-$('guest').onclick=()=>{ localStorage.setItem('wp_user', JSON.stringify({name:'Guest',email:''})); location.href='quiz.html'; };
+document.getElementById('guest').onclick = () => {
+  saveUser({name:'Guest', email:''});
+  location.href = 'dashboard.html';
+};
 </script>
 </body>
 </html>
