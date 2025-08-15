@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Plan — Wellness Planner</title>
+<style>
+  :root{--bg:#fff5f8;--card:#fff;--ink:#3b2a34;--muted:#7a6871;--accent:#cc6e91;--edge:#f2d3e0}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(120deg,#fff5f8,#fff0f6);color:var(--ink)}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px;display:grid;grid-template-columns:2fr 1fr;gap:16px}
+  @media(max-width:900px){ .wrap{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;box-shadow:0 10px 28px rgba(204,110,145,.06)}
+  .head{display:flex;gap:10px;align-items:center}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(180deg,#ff9bc6,#cc6e91);display:grid;place-items:center;color:#fff}
+  h1{font-size:20px;color:var(--accent);margin:0}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  @media(max-width:700px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+  .tile{background:#fff;border:1px solid var(--edge);border-radius:10px;padding:10px;text-align:center}
+  .pill{display:inline-block;background:#fff0f6;border:1px solid #f2d3e0;border-radius:999px;padding:6px 10px;color:#a84b74;font-weight:700}
+  .week{display:grid;gap:10px} @media(min-width:760px){ .week{grid-template-columns:repeat(2,1fr)} }
+  .day{background:#fff;border:1px solid var(--edge);border-radius:10px;padding:10px}
+  .small{color:var(--muted);font-size:13px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{padding:10px 14px;border-radius:12px;border:1px solid transparent;background:linear-gradient(90deg,#ff9bc6,#cc6e91);color:#fff;font-weight:700;cursor:pointer}
+  .ghost{background:#fff;color:var(--accent);border-color:#ead3de}
+  canvas{max-width:200px;height:auto}
+  @media print{ .actions{display:none} body{background:#fff} .card{box-shadow:none} }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="card head" style="justify-content:space-between">
+      <div class="head"><div class="logo">★</div><div><h1 id="greet">Your plan</h1><div class="small" id="sub"></div></div></div>
+      <div class="actions">
+        <button class="ghost" id="edit">Edit answers</button>
+        <button class="ghost" id="print">Print / PDF</button>
+        <button class="ghost" id="reset">Reset</button>
+        <button id="download">Download JSON</button>
+      </div>
+    </header>
+
+    <main class="card">
+      <div style="font-weight:700;margin-bottom:6px">Overview</div>
+      <div class="kpis" id="kpis"></div>
+
+      <div style="display:flex;gap:14px;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <div><span class="pill" id="macroP">Protein — g</span> <span class="pill" id="macroC">Carbs — g</span> <span class="pill" id="macroF">Fats — g</span> <span class="pill" id="targetKcal">Target — kcal</span></div>
+        <canvas id="pie" width="200" height="200"></canvas>
+      </div>
+
+      <section style="margin-top:12px">
+        <div style="font-weight:700">7-Day Meal Plan</div>
+        <div class="week" id="meals"></div>
+      </section>
+
+      <section style="margin-top:12px">
+        <div style="font-weight:700">7-Day Workout Plan</div>
+        <div class="week" id="workouts"></div>
+      </section>
+
+      <section style="margin-top:12px">
+        <div style="font-weight:700">Personalized Tips</div>
+        <ul id="tips" class="small" style="margin-top:6px"></ul>
+      </section>
+    </main>
+
+    <aside class="card">
+      <div style="font-weight:700;color:var(--accent)">Quick view</div>
+      <div class="small" id="quick"></div>
+      <div style="margin-top:10px" class="small">Hydration target: <b id="water">—</b> / day</div>
+      <div style="margin-top:10px" class="small">Protein sources are tailored to your preferences.</div>
+    </aside>
+  </div>
+
+<script>
+// ---------- load data ----------
+const user = JSON.parse(localStorage.getItem('wp_user')||'{}');
+const ans  = JSON.parse(localStorage.getItem('wp_answers')||'null');
+if(!ans){ location.href='quiz.html'; }
+document.getElementById('greet').textContent = `Your plan${user?.name?`, ${user.name}`:''}`;
+document.getElementById('sub').textContent = `Generated on ${new Date().toLocaleDateString()}`;
+
+// ---------- calculations ----------
+const act = {sedentary:1.2, light:1.375, moderate:1.55, active:1.725, athlete:1.9};
+const bmi = (ans.weight/((ans.height/100)**2));
+function bmicat(x){return x<18.5?'Under':x<25?'Normal':x<30?'Over':'Obese'}
+function bmr(w,h,age,gender){ const base=10*w+6.25*h-5*age; return gender==='male'?base+5:gender==='female'?base-161:base-78; }
+const BMR = bmr(ans.weight,ans.height,ans.age,ans.gender);
+const TDEE = Math.round(BMR * (act[ans.activity]||1.55));
+const goal = ans.goal!=='auto'?ans.goal:(ans.ideal? (ans.ideal<ans.weight-0.5?'lose':ans.ideal>ans.weight+0.5?'gain':'maintain') : 'maintain');
+const target = goal==='lose'?Math.max(1200,TDEE-500):goal==='gain'?TDEE+300:TDEE;
+const protein = Math.round((goal==='lose'?1.8:1.6)*ans.weight);
+const fatKcal = Math.round(target*(goal==='lose'?0.25:0.30));
+const fat = Math.round(fatKcal/9);
+const carbs = Math.max(0, Math.round((target - protein*4 - fatKcal)/4));
+const waterMl = Math.round(ans.weight*32); // 30–35 ml/kg ~ pick 32
+
+// ---------- UI: KPIs & macros ----------
+const kpis=document.getElementById('kpis');
+kpis.innerHTML=`
+  <div class="tile"><div class="small">BMI</div><div style="font-weight:700">${(Math.round(bmi*10)/10).toFixed(1)}</div></div>
+  <div class="tile"><div class="small">Category</div><div style="font-weight:700">${bmicat(bmi)}</div></div>
+  <div class="tile"><div class="small">BMR</div><div style="font-weight:700">${Math.round(BMR)} kcal</div></div>
+  <div class="tile"><div class="small">TDEE</div><div style="font-weight:700">${TDEE} kcal</div></div>
+`;
+document.getElementById('macroP').textContent=`Protein ${protein}g`;
+document.getElementById('macroC').textContent=`Carbs ${carbs}g`;
+document.getElementById('macroF').textContent=`Fats ${fat}g`;
+document.getElementById('targetKcal').textContent=`Target ${target} kcal`;
+document.getElementById('quick').innerHTML = `
+  <div>Goal: <b>${goal}</b></div>
+  <div>Build: <b>${ans.build}</b></div>
+  <div>Workout: <b>${ans.location}</b></div>
+  <div>Diet: <b>${ans.vegan?'Vegan':'Standard'}</b>${ans.allergies?.length?` — avoids ${ans.allergies.join(', ')}`:''}</div>`;
+document.getElementById('water').textContent = `${waterMl} ml`;
+
+// ---------- tiny pie chart ----------
+(function pie(){
+  const ctx=document.getElementById('pie').getContext('2d');
+  const vals=[protein*4, carbs*4, fat*9]; const total=vals.reduce((a,b)=>a+b,0);
+  const colors=['#cc6e91','#f7a7c4','#f2d3e0'];
+  let start=0;
+  vals.forEach((v,i)=>{ const ang=(v/total)*Math.PI*2; ctx.beginPath(); ctx.moveTo(100,100); ctx.arc(100,100,100,start,start+ang); ctx.closePath(); ctx.fillStyle=colors[i]; ctx.fill(); start+=ang; });
+})();
+
+// ---------- meals ----------
+const FOODS = {
+  omni:{
+    breakfast:[
+      {n:'Greek yogurt + berries + chia',t:['dairy']},
+      {n:'Veggie omelette + toast',t:['eggs','gluten']},
+      {n:'Oats + milk + banana',t:['gluten','dairy']},
+      {n:'Besan chilla + curd',t:['dairy']},
+      {n:'Protein smoothie (whey) + fruit',t:['dairy']},
+      {n:'Poha + peanuts',t:['nuts']}
+    ],
+    lunch:[
+      {n:'Grilled chicken salad + olive oil',t:[]},
+      {n:'Paneer + quinoa + salad',t:['dairy']},
+      {n:'Dal + brown rice + veg',t:[]},
+      {n:'Fish + potatoes + greens',t:[]},
+      {n:'Turkey/soy mince + rice',t:['soy']},
+      {n:'Buddha bowl (chicken/tofu)',t:['soy']}
+    ],
+    snack:[
+      {n:'Apple + peanut butter',t:['nuts']},
+      {n:'Greek yogurt',t:['dairy']},
+      {n:'Roasted chana',t:[]},
+      {n:'Cheese + crackers',t:['dairy','gluten']},
+      {n:'Protein shake',t:[]},
+      {n:'Mixed nuts (small)',t:['nuts']}
+    ],
+    dinner:[
+      {n:'Chicken + rice + veg',t:[]},
+      {n:'Paneer tikka + roti',t:['dairy','gluten']},
+      {n:'Tofu stir-fry + rice',t:['soy']},
+      {n:'Egg curry + potatoes',t:['eggs']},
+      {n:'Baked fish + vegetables',t:[]},
+      {n:'Dal + quinoa + salad',t:[]}
+    ]
+  },
+  vegan:{
+    breakfast:[
+      {n:'Overnight oats + soy/almond milk + berries',t:['gluten','soy','nuts']},
+      {n:'Tofu scramble + hash',t:['soy']},
+      {n:'Chickpea pancakes + salsa',t:[]},
+      {n:'Smoothie (plant protein) + banana',t:[]},
+      {n:'Dosa + sambar',t:[]},
+      {n:'Poha + peas',t:[]}
+    ],
+    lunch:[
+      {n:'Chana salad + olive oil',t:[]},
+      {n:'Tofu rice bowl + veg',t:['soy']},
+      {n:'Dal + brown rice + salad',t:[]},
+      {n:'Veg biryani + raita alt',t:[]},
+      {n:'Buddha bowl (beans, quinoa)',t:[]},
+      {n:'Veg stir-fry + rice',t:[]}
+    ],
+    snack:[
+      {n:'Roasted chana',t:[]},
+      {n:'Fruit + seed mix',t:[]},
+      {n:'Hummus + veggie sticks',t:[]},
+      {n:'Plant protein shake',t:[]},
+      {n:'Dates + peanuts',t:['nuts']},
+      {n:'Popcorn (air-popped)',t:[]}
+    ],
+    dinner:[
+      {n:'Rajma + rice + salad',t:[]},
+      {n:'Tofu/tempeh + potatoes + greens',t:['soy']},
+      {n:'Khichdi + veg',t:[]},
+      {n:'Soya chaap + roti',t:['soy','gluten']},
+      {n:'Veg curry + quinoa',t:[]},
+      {n:'Lentil pasta + sauce',t:[]}
+    ]
+  }
+};
+function safeList(list, allergies){
+  const out=list.filter(x=>!x.t.some(t=>allergies.includes(t)));
+  if(out.length) return out;
+  // fallback if everything filtered
+  return [{n:'Rice + lentils + vegetables',t:[]}];
+}
+function pick(arr,i){ return arr[i % arr.length].n; }
+const vegan = !!ans.vegan, A = ans.allergies||[];
+const bank = vegan?FOODS.vegan:FOODS.omni;
+const mealsWrap=document.getElementById('meals');
+const splits=[.25,.35,.10,.30]; // kcal split
+const bList=safeList(bank.breakfast,A), lList=safeList(bank.lunch,A), sList=safeList(bank.snack,A), dList=safeList(bank.dinner,A);
+for(let i=0;i<7;i++){
+  const day=document.createElement('div'); day.className='day';
+  day.innerHTML = `<div style="font-weight:700">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div>
+  <ul class="small" style="margin:8px 0 0 0;list-style:none;padding:0">
+    <li><b>Breakfast:</b> ${pick(bList,i)} <span class="small">(${Math.round(target*splits[0])} kcal)</span></li>
+    <li><b>Lunch:</b> ${pick(lList,i)} <span class="small">(${Math.round(target*splits[1])} kcal)</span></li>
+    <li><b>Snack:</b> ${pick(sList,i)} <span class="small">(${Math.round(target*splits[2])} kcal)</span></li>
+    <li><b>Dinner:</b> ${pick(dList,i)} <span class="small">(${Math.round(target*splits[3])} kcal)</span></li>
+  </ul>`;
+  mealsWrap.appendChild(day);
+}
+
+// ---------- workouts ----------
+function baseHome(){
+  return [
+    ['Full-body circuit: squats 3×12, push-ups 3×AMRAP, hip hinge 3×12, rows (band) 3×12','Finish: brisk walk 20–30 min'],
+    ['Mobility + core: dead bug 3×10/side, side plank 3×30s/side','Zone-2 cardio 30–40 min'],
+    ['Lower focus: split squats 3×10/side, glute bridge 4×12, calf raises 3×15'],
+    ['Active recovery: walk 8–10k steps, light stretch'],
+    ['Upper focus: pike push-up 3×8–12, band row 4×12, curl 3×12, triceps 3×12'],
+    ['Intervals: 8×1 min hard / 1 min easy (bike/run/rope)'],
+    ['Rest or gentle yoga 20–30 min']
+  ];
+}
+function baseGym(){
+  return [
+    ['Push: bench 4×6–8, incline DB 3×8–10, OHP 3×8, triceps 3×12','Walk 10–15 min'],
+    ['Pull: deadlift 3×3–5, lat pulldown 4×8–10, row 3×8–10, curls 3×12'],
+    ['Legs: squat 4×5–8, RDL 3×8–10, leg press 3×12, calf 3×15'],
+    ['Cardio + core: Zone-2 35–45 min, plank 3×45s, leg raise 3×12'],
+    ['Upper volume: incline 4×10, row 4×10, lateral raise 3×15'],
+    ['Conditioning: 10×1 min intervals'],
+    ['Rest / long walk']
+  ];
+}
+function tweakForGoal(dayArr, goal){
+  return dayArr.map(d=>{
+    let dd=[...d];
+    if(goal==='lose') dd.push('Optional: finish with Zone-2 15–20 min');
+    if(goal==='gain') dd.push('Add 1–2 accessory sets where form is solid');
+    return dd;
+  });
+}
+const base = ans.location==='gym'?baseGym():baseHome();
+const planW = tweakForGoal(base, goal);
+const workWrap=document.getElementById('workouts');
+for(let i=0;i<7;i++){
+  const day=document.createElement('div'); day.className='day';
+  day.innerHTML = `<div style="font-weight:700">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div>
+  <ul class="small" style="margin:8px 0 0 0;list-style:none;padding:0">${planW[i].map(x=>`<li>${x}</li>`).join('')}</ul>`;
+  workWrap.appendChild(day);
+}
+
+// ---------- personalized tips ----------
+const tips=[];
+if(goal==='lose') tips.push('Prioritize protein and fiber each meal; keep snacks planned, not random.');
+if(goal==='gain') tips.push('Track key lifts weekly; aim small progressive increases (load or reps).');
+if(bmi>=25) tips.push('Daily movement matters: target 7–9k steps; spread across the day.');
+if(bmi<18.5) tips.push('Use calorie-dense foods: nuts/seeds, olive oil, smoothies after training.');
+if(ans.vegan) tips.push('Include varied plant proteins (tofu/tempeh, beans, lentils); consider B12 and iron sources.');
+if((ans.allergies||[]).length) tips.push('Read labels and plan safe go-to meals you enjoy.');
+if(ans.location==='home') tips.push('A short set of bands and a pair of adjustable dumbbells go a long way.');
+if(ans.location==='gym') tips.push('Learn key movement patterns (hinge, squat, push, pull); ask for form checks.');
+if(ans.sleep && ans.sleep<7) tips.push('Protect a consistent bedtime; dim screens 60 minutes before sleep.');
+if(ans.activity==='sedentary') tips.push('Add 5-minute movement breaks each hour of desk work.');
+tips.push(`Hydration: aim ~${waterMl} ml/day. Adjust up in heat or long sessions.`);
+const tipsEl=document.getElementById('tips'); tips.forEach(t=>{ const li=document.createElement('li'); li.textContent=t; tipsEl.appendChild(li); });
+
+// ---------- buttons ----------
+document.getElementById('edit').onclick=()=>location.href='quiz.html';
+document.getElementById('print').onclick=()=>window.print();
+document.getElementById('reset').onclick=()=>{ if(confirm('Clear all saved data?')){ localStorage.removeItem('wp_user'); localStorage.removeItem('wp_answers'); location.href='index.html'; } };
+document.getElementById('download').onclick=()=>{
+  const payload={user,answers:ans,metrics:{bmi:+(bmi.toFixed(1)),bmr:Math.round(BMR),tdee:TDEE,goal,target},macros:{protein,carbs,fat},waterMl,generated:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='wellness-plan.json'; a.click(); URL.revokeObjectURL(url);
+};
+</script>
+</body>
+</html>
