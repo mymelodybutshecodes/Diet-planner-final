@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7-Day Workout — Wellness Planner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg">
+<header class="topbar card">
+  <div class="brand">
+    <div class="brand__logo">★</div>
+    <div>
+      <h1 class="brand__title">7-Day Workout Plan</h1>
+      <div class="muted" id="subtitle"></div>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn--ghost" href="dashboard.html">Back to dashboard</a>
+  </div>
+</header>
+
+<main class="wrap wrap--narrow">
+  <section class="card">
+    <div class="row row--between">
+      <div class="kicker">Mode</div>
+      <select id="locSelect" class="select">
+        <option value="home">At home</option>
+        <option value="gym">Gym</option>
+      </select>
+    </div>
+    <div class="week" id="weekPlan"></div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+<script>
+const ans = getAnswers() || defaultAnswers();
+byId('subtitle').textContent = `${(getUser()?.name)||'You'} — ${new Date().toLocaleDateString()}`;
+byId('locSelect').value = ans.location || 'home';
+
+function paint(){
+  const plan = (ans.location==='gym' ? baseGymFull() : baseHomeFull());
+  const wrap = byId('weekPlan'); wrap.innerHTML='';
+  const prog = getProgress();
+  plan.forEach((day,i)=>{
+    const key = weekKey(i);
+    const checked = prog.weekDone?.includes(key);
+    const card = document.createElement('div');
+    card.className='daycard';
+    card.innerHTML = `
+      <div class="daycard__head">
+        <div class="dayname">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div>
+        <label class="check"><input type="checkbox" data-key="${key}" ${checked?'checked':''}> Done</label>
+      </div>
+      <ul class="list">${day.map(x=>`<li>${x}</li>`).join('')}</ul>
+    `;
+    wrap.appendChild(card);
+  });
+
+  wrap.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const k = e.target.getAttribute('data-key');
+      const prog = getProgress();
+      prog.weekDone = prog.weekDone||[];
+      if(e.target.checked && !prog.weekDone.includes(k)) prog.weekDone.push(k);
+      if(!e.target.checked) prog.weekDone = prog.weekDone.filter(x=>x!==k);
+      saveProgress(prog);
+    });
+  });
+}
+
+byId('locSelect').addEventListener('change', e=>{
+  ans.location = e.target.value; saveAnswers(ans); paint();
+});
+
+paint();
+</script>
+</body>
+</html>
