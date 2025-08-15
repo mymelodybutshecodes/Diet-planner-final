@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wellness Planner — Quiz</title>
+<style>
+  :root{--bg:#fff5f8;--card:#fff;--ink:#3b2a34;--muted:#7a6871;--accent:#cc6e91;--edge:#f2d3e0}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(120deg,#fff5f8,#fff0f6);color:var(--ink)}
+  .wrap{max-width:980px;margin:0 auto;padding:20px;display:grid;gap:16px}
+  .head{display:flex;gap:10px;align-items:center}.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(180deg,#ff9bc6,#cc6e91);display:grid;place-items:center;color:#fff}
+  h1{font-size:20px;color:var(--accent);margin:0} .sub{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}
+  @media(max-width:760px){ .grid{grid-template-columns:1fr} }
+  .card{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:14px;box-shadow:0 10px 28px rgba(204,110,145,.06)}
+  label{font-size:13px;color:var(--muted)} input,select{width:100%;padding:10px;border:1px solid #ead3de;border-radius:10px;font-size:15px;margin-top:6px}
+  input:focus,select:focus{border-color:#e3a9c1;box-shadow:0 0 0 6px rgba(204,110,145,.08);outline:none}
+  .row{display:grid;gap:8px}
+  .checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{padding:10px 14px;border-radius:12px;border:1px solid transparent;background:linear-gradient(90deg,#ff9bc6,#cc6e91);color:#fff;font-weight:700;cursor:pointer}
+  .ghost{background:#fff;color:var(--accent);border-color:#ead3de}
+  .note{font-size:12px;color:var(--muted)}
+  .toggle{display:flex;gap:8px;align-items:center}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="head">
+      <div class="logo">★</div>
+      <div><h1>Build your profile</h1><div class="sub">This shapes calories, macros, meals and workouts.</div></div>
+    </header>
+
+    <section class="card">
+      <div class="grid">
+        <div class="row">
+          <label>Units</label>
+          <select id="units">
+            <option value="metric">Metric (cm, kg)</option>
+            <option value="imperial">Imperial (ft/in, lb)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Age</label>
+          <input id="age" type="number" placeholder="Years">
+        </div>
+        <div class="row">
+          <label id="hlabel">Height (cm)</label>
+          <input id="height" type="number" placeholder="170">
+        </div>
+        <div class="row">
+          <label id="wlabel">Weight (kg)</label>
+          <input id="weight" type="number" placeholder="65">
+        </div>
+        <div class="row">
+          <label>Gender</label>
+          <select id="gender"><option value="">Select</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select>
+        </div>
+        <div class="row">
+          <label>Activity level</label>
+          <select id="activity">
+            <option value="sedentary">Sedentary</option>
+            <option value="light">Light</option>
+            <option value="moderate" selected>Moderate</option>
+            <option value="active">Active</option>
+            <option value="athlete">Athlete</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Ideal weight (kg)</label>
+          <input id="ideal" type="number" placeholder="Target weight">
+        </div>
+        <div class="row">
+          <label>Goal</label>
+          <select id="goal">
+            <option value="auto" selected>Auto (from current vs. ideal)</option>
+            <option value="lose">Weight loss</option>
+            <option value="maintain">Maintenance</option>
+            <option value="gain">Muscle gain</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Preferred build</label>
+          <select id="build">
+            <option value="lean">Lean</option>
+            <option value="toned" selected>Toned</option>
+            <option value="muscular">Muscular</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Workout location</label>
+          <select id="location">
+            <option value="">Select</option>
+            <option value="home">At home</option>
+            <option value="gym">Gym</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Typical sleep (hrs/night) <span class="note">(optional)</span></label>
+          <input id="sleep" type="number" step="0.1" placeholder="e.g., 7.0">
+        </div>
+        <div class="row">
+          <label class="toggle"><input id="vegan" type="checkbox"> Vegan</label>
+          <span class="note">Vegan adjusts protein sources, removes animal products.</span>
+        </div>
+        <div class="row">
+          <label>Allergies / avoid</label>
+          <div class="checks">
+            <label><input type="checkbox" value="nuts" class="alg"> Nuts</label>
+            <label><input type="checkbox" value="dairy" class="alg"> Dairy</label>
+            <label><input type="checkbox" value="gluten" class="alg"> Gluten</label>
+            <label><input type="checkbox" value="soy" class="alg"> Soy</label>
+            <label><input type="checkbox" value="eggs" class="alg"> Eggs</label>
+            <label><input type="checkbox" value="shellfish" class="alg"> Shellfish</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="next">Generate my plan</button>
+        <button class="ghost" id="cancel">Back</button>
+      </div>
+      <div class="note" style="margin-top:6px">Educational use only. Not medical advice.</div>
+    </section>
+  </div>
+
+<script>
+const $=id=>document.getElementById(id);
+const unitsSel=$('units'), h=$('height'), w=$('weight'), hlabel=$('hlabel'), wlabel=$('wlabel');
+unitsSel.onchange=()=>{ if(unitsSel.value==='imperial'){ hlabel.textContent='Height (ft.in)'; h.placeholder='5.6 means 5ft 7in'; wlabel.textContent='Weight (lb)'; w.placeholder='143'; } else { hlabel.textContent='Height (cm)'; h.placeholder='170'; wlabel.textContent='Weight (kg)'; w.placeholder='65'; }};
+
+function toMetricHeight(val){ // if imperial, input like 5.6 = 5ft 7in
+  const n=parseFloat(val); if(isNaN(n)) return 0;
+  const ft=Math.floor(n); const dec=n-ft; const inches=Math.round(dec*10); // user enters 5.7 etc.
+  return Math.round((ft*12+inches)*2.54);
+}
+function toMetricWeight(val){ const n=parseFloat(val); if(isNaN(n)) return 0; return Math.round(n/2.20462); }
+
+$('cancel').onclick=()=>location.href='index.html';
+$('next').onclick=()=>{
+  const data={
+    units: unitsSel.value,
+    age: Number($('age').value),
+    height: unitsSel.value==='imperial' ? toMetricHeight(h.value) : Number(h.value),
+    weight: unitsSel.value==='imperial' ? toMetricWeight(w.value) : Number(w.value),
+    gender: $('gender').value,
+    activity: $('activity').value,
+    ideal: Number($('ideal').value||0),
+    goal: $('goal').value,
+    build: $('build').value,
+    location: $('location').value,
+    sleep: Number($('sleep').value||0),
+    vegan: $('vegan').checked,
+    allergies: Array.from(document.querySelectorAll('.alg:checked')).map(x=>x.value)
+  };
+  for(const k of ['age','height','weight','gender','activity','location']){
+    if(!data[k]){ alert('Please complete all required fields.'); return; }
+  }
+  localStorage.setItem('wp_answers', JSON.stringify(data));
+  location.href='dashboard.html';
+};
+</script>
+</body>
+</html>
