@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meals & Macros — Wellness Planner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="bg">
+<header class="topbar card">
+  <div class="brand">
+    <div class="brand__logo">★</div>
+    <div>
+      <h1 class="brand__title">Meals & Macros</h1>
+      <div class="muted" id="subtitle"></div>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn--ghost" href="dashboard.html">Back to dashboard</a>
+  </div>
+</header>
+
+<main class="wrap wrap--narrow">
+  <section class="card">
+    <div class="row row--between">
+      <label class="switch"><input type="checkbox" id="veganToggle"><span>Vegan</span></label>
+      <div class="muted" id="macroLine"></div>
+    </div>
+    <div class="week" id="mealWeek"></div>
+  </section>
+</main>
+
+<script src="script.js"></script>
+<script>
+const ans = getAnswers() || defaultAnswers();
+const calc = computeMetrics(ans);
+byId('subtitle').textContent = `${(getUser()?.name)||'You'} — ${new Date().toLocaleDateString()}`;
+byId('veganToggle').checked = !!ans.vegan;
+
+function paint(){
+  const calc = computeMetrics(ans);
+  byId('macroLine').textContent = `Target ${calc.target} kcal — Protein ${calc.protein}g · Carbs ${calc.carbs}g · Fats ${calc.fat}g`;
+  const bank = ans.vegan?FOODS.vegan:FOODS.omni;
+  const wrap = byId('mealWeek'); wrap.innerHTML='';
+  for(let i=0;i<7;i++){
+    const picks = safeDaily(bank, ans.allergies||[], i);
+    const card = document.createElement('div');
+    card.className='daycard';
+    card.innerHTML = `
+      <div class="daycard__head"><div class="dayname">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]}</div></div>
+      <ul class="list">
+        <li><b>Breakfast:</b> ${picks.breakfast} <span class="muted">(${Math.round(calc.target*0.25)} kcal)</span></li>
+        <li><b>Lunch:</b> ${picks.lunch} <span class="muted">(${Math.round(calc.target*0.35)} kcal)</span></li>
+        <li><b>Snack:</b> ${picks.snack} <span class="muted">(${Math.round(calc.target*0.10)} kcal)</span></li>
+        <li><b>Dinner:</b> ${picks.dinner} <span class="muted">(${Math.round(calc.target*0.30)} kcal)</span></li>
+      </ul>
+    `;
+    wrap.appendChild(card);
+  }
+}
+byId('veganToggle').addEventListener('change', e=>{
+  ans.vegan = e.target.checked; saveAnswers(ans); paint();
+});
+paint();
+</script>
+</body>
+</html>
